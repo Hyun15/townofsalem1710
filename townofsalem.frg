@@ -9,7 +9,7 @@ abstract sig Agent {}
 -- there are three types of Agents: Town, Mafia, and Neutrals
 sig Town extends Agent {}
 sig Mafia extends Agent {}
-sig Neutrzal extends Agent {} 
+sig Neutral extends Agent {} 
 
 
 
@@ -17,7 +17,7 @@ sig Neutrzal extends Agent {}
 sig Jester extends Neutral {}
 sig SerialKiller extends Neutral {}
 sig Executioner extends Neutral {
-    one Agent: target
+    target: one Agent
 }
 
 /*
@@ -30,20 +30,33 @@ sig Executioner extends Neutral {
 // STATES
 
 -- each State represents a day-night shift in the game
-sig State {
-    lone State: next
-    set Agent: alive
+abstract sig State {
 }
 
 -- each Day cycle, an Agent can vote for another Agent
 -- the Agent that accrues >50% of votes is killed in the Day
 sig Day extends State {
-    pfunc: Agent -> Agent: votes_for
+    votes_for: pfunc Agent -> Agent,
+    alive: set Agent,
+    next: lone State
 }
 
 -- each Night cycle, a set of Agents can be killed
 sig Night extends State {
-    set Agent: killed
+    killed: set Agent,
+    alive: set Agent,
+    next: lone State
     // set Agent: protected
 }
 
+
+pred passiveTownDay[prev: Day, post: Night] {
+    all a: Agent | {
+        prev.alive
+    }
+}
+
+
+pred townLynchBehavior[prev: State, post: State] {
+
+}
