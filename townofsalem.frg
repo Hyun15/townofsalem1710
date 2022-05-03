@@ -31,21 +31,19 @@ sig Executioner extends Neutral {
 
 -- each State represents a day-night shift in the game
 abstract sig State {
+    alive: set Agent,
+    next: lone State
 }
 
 -- each Day cycle, an Agent can vote for another Agent
 -- the Agent that accrues >50% of votes is killed in the Day
 sig Day extends State {
-    votes_for: pfunc Agent -> Agent,
-    alive: set Agent,
-    next: lone State
+    votes_for: pfunc Agent -> Agent
 }
 
 -- each Night cycle, a set of Agents can be killed
 sig Night extends State {
-    killed: set Agent,
-    alive: set Agent,
-    next: lone State
+    killed: set Agent
     // set Agent: protected
 }
 
