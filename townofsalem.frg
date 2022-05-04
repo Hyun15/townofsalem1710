@@ -43,7 +43,7 @@ sig Day extends State {
 
 -- each Night cycle, a set of Agents can be killed
 sig Night extends State {
-    killed: set Agent
+    mafia_killed: set Agent
     // set Agent: protected
 }
 
@@ -57,4 +57,78 @@ pred passiveTownDay[prev: Day, post: Night] {
 
 pred townLynchBehavior[prev: State, post: State] {
 
+}
+
+pred mafiaPabloEscobarBehavior[]{
+    -- everynight, if someone in the mafia is alive, the mafia will kill someone
+    all n: Night | {
+        some m: Mafia | m in n.alive
+        some t: Town | t in n.alive
+    } => {
+        #{n.mafia_killed} = 1
+    }
+    -- never vote for the mafia during the day
+    all d: Day | {
+        no m: Mafia | d.votes_for[m] in Mafia
+    }
+}
+
+pred mafiaWeirdlyPeacefulBehavior{
+--Do nothing during the night
+all n: Night | {
+    no (n.mafia_killed)
+}
+-- Never vote for other mafia during the day.
+all d: Day | {
+        no m: Mafia | d.votes_for[m] in Mafia
+    }
+}
+
+
+pred wellformedDay{
+    
+    all d: Day | {
+        -- no one can vote for themselves
+        no a: Agent | d.votes_for[a] = a
+        -- next is a night state
+        some(d.next) => d.next in Night
+
+    }
+
+}
+
+pred wellFormedNight{
+    all n: Night | {
+        -- mafia cant kill mafia
+        no m: Mafia | {
+            m in n.mafia_killed
+        }
+        --next is a day state
+       some(n.next) => n.next in Night
+    }
+}
+
+pred traces{
+    wellFormedDay
+    wellFormedNight
+    all d: Day | {
+        -- if someone gets a majority of the votes, then the next stats has that
+        -- person gone
+        all a: Agent | (#{d.votes_for.a} > add[divide[#{d.alive}, 2],1]) =>{
+            some d.next => d.next.alive = d.alive - a
+        }
+
+    }
+    all n: Night | {
+        -- the net days alive it n alive minus mafia killed and whoever else
+        some (n.next) => {
+            n.next.alive = (n.alive - (n.mafia_killed))
+        }
+
+    }
+
+    -- if there is a state that has nothing before it, then it is init
+    all s: State | {
+        no (next.s) => init[s]
+    }
 }
