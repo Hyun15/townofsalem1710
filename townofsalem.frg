@@ -31,7 +31,7 @@ sig Executioner extends Neutral {
 -- each State represents a day-night shift in the game
 abstract sig State {
     alive: set Agent,
-    prev: lone State,
+    // prev: lone State,
     next: lone State
 }
 
@@ -63,10 +63,9 @@ pred townPassiveBehavior {
 pred townMurderousBehavior {
     -- during all Day states, the town should always vote for someone that's alive and not them
     all d: Day | all t: Town | one a: Agent | {
-        t in d.alive
         a in d.alive
         a != t
-        d.votes_for[t] = a
+        t in d.alive implies d.votes_for[t] = a
     }
 }
 
@@ -87,19 +86,16 @@ pred jesterBehavior {
 pred serialKillerBehavior {
     -- during the Day, vote for anyone except yourself
     all d: Day | all sk: SerialKiller | some a: Agent | {
-        sk in d.alive
         a in d.alive
         a != sk
-        d.votes_for[sk] = a
+        sk in d.alive implies d.votes_for[sk] = a
     }
 
     -- during the Night, the SerialKiller will kill any one random Agent that's not themselves
     all n: Night | all sk: SerialKiller | one a: Agent | {
-        sk in n.alive
         a in n.alive
         a != sk
-
-        a in n.neutral_killed
+        sk in n.alive implies a in n.neutral_killed
     }
 }
 
@@ -144,70 +140,16 @@ all d: Day | {
 }
 
 --------------------------------------------------------------------------------
-//
-
 pred wellFormed {
-    some disj firstDay, lastDay: Day | {
-        -- no state should come before the firstDay
-        no s: State | s.next = firstDay
-        firstDay.prev = none
-        -- no state should exist after the lastDay
-        no lastDay.next
-        all s: State | {s.prev != lastDay}
-
-        -- everyone is alive in the firstDay
-        all a: Agent | {
-            a in firstDay.alive
-        }
-
-        -- all other states should have one unique next
-        all s: State | {
-            (s != firstDay and s !=lastDay) implies some s.next
-        }
-        all disj s1, s2: State | {
-            s1.next != s2.next
-            s1.next = s2 implies s2.prev = s1
-        }
-
-        -- if someone dies in the night, they are not alive in the next Day
-        all n: Night | all a: Agent | {
-            a in n.mafia_killed implies a not in n.next.alive
-            a in n.neutral_killed implies a not in n.next.alive
-        }
-
-        -- everyone alive in the day is alive in the next night
-        ------ NOTE: this needs to change when voting becomes functional
-        all d: Day | all n: Night | {
-            d.next = n implies d.alive = n.alive
-        }
-
-    }
-
-    -- if we just had a Day, we go into a Night
-
-    // -- during the day, if you are voted, you are dead
-    // all d: Day | all a: Agent | {
-    //     #{d.ali
-
-    // }
-
-}
-
-
-
-pred wellformedDay{
-    
+    -- controls day behavior
     all d: Day | {
-        -- no one can vote for themselves
-        -- no a: Agent | d.votes_for[a] = a
-        -- next is a night state
-        some(d.next) => d.next in Night
-
+            -- no one can vote for themselves
+            -- no a: Agent | d.votes_for[a] = a
+            -- next is a night state
+            some(d.next) => d.next in Night
     }
 
-}
-
-pred wellFormedNight{
+    -- controls night behavior
     all n: Night | {
         -- mafia cant kill mafia
         no m: Mafia | {
@@ -216,11 +158,65 @@ pred wellFormedNight{
         --next is a day state
        some(n.next) => n.next in Night
     }
+
+    -- creates an initial and final day
+    some disj init, final: Day {
+        -- initial day properties
+        no s: State | s.next = init
+        all a: Agent | a in init.alive
+
+        all s: State | s.next = none implies s = final
+        all s: State | next.s = none implies s = init
+
+    }
+
+
 }
-/*
-pred traces{
-    wellFormedDay
-    wellFormedNight
+
+    //
+
+// pred wellFormed {
+//     some disj firstDay, lastDay: Day | {
+//         -- no state should come before the firstDay
+//         no s: State | s.next = firstDay
+//         // firstDay.prev = none
+//         -- no state should exist after the lastDay
+//         no lastDay.next
+//         // all s: State | {s.prev != lastDay}
+
+//         -- everyone is alive in the firstDay
+//         all a: Agent | {
+//             a in firstDay.alive
+//         }
+
+//         -- all other states should have one unique next
+//         all s: State | {
+//             (s != firstDay and s !=lastDay) implies some s.next
+//         }
+//         all disj s1, s2: State | {
+//             s1.next != s2.next
+//             s1.next = s2 implies s2.prev = s1
+//         }
+
+//         -- if someone dies in the night, they are not alive in the next Day
+//         all n: Night | all a: Agent | {
+//             a in n.mafia_killed implies a not in n.next.alive
+//             a in n.neutral_killed implies a not in n.next.alive
+//         }
+
+//         -- everyone alive in the day is alive in the next night
+//         ------ NOTE: this needs to change when voting becomes functional
+//         all d: Day | all n: Night | {
+//             d.next = n implies d.alive = n.alive
+//         }
+
+//     }
+
+
+
+pred traces {
+    wellFormed
+
     all d: Day | {
         -- if someone gets a majority of the votes, then the next stats has that
         -- person gone
@@ -237,27 +233,15 @@ pred traces{
 
     }
 
-    -- if there is a state that has nothing before it, then it is init
-    all s: State | {
-        no (next.s) => init[s]
-    }
 }
 
-*/
-pred traces {
-    wellFormed
-    townPassiveBehavior
-    // townMurderousBehavior
-    jesterBehavior
-    serialKillerBehavior
-    
-}
 
 run {
-    traces
-    } for exactly 2 Day, exactly 1 Night, exactly 2 Town, exactly 2 Jester, exactly 1 SerialKiller for {next is linear} 
+    traces // your traces
+    wellFormed // add my wellFormed for no reason
+    townPassiveBehavior
+    mafiaWeirdlyPeacefulBehavior
+    jesterBehavior
+    serialKillerBehavior
 
-// run {traces} for 1 State, 2 Agent
-// pred townLynchBehavior[prev: State, post: State] {
-
-// }
+    } for exactly 5 State, exactly 2 Town, exactly 2 Jester, exactly 2 Mafia, exactly 1 SerialKiller for {next is linear} 
