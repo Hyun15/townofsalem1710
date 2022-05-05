@@ -116,6 +116,34 @@ pred executionerBehavior {
 
 }
 --------------------------------------------------------------------------------
+// MAFIA BEHAVIOR
+
+pred mafiaPabloEscobarBehavior{
+    -- everynight, if someone in the mafia is alive, the mafia will kill someone
+    all n: Night | {
+        some m: Mafia | m in n.alive
+        some t: Town | t in n.alive
+    } => {
+        #{n.mafia_killed} = 1
+    }
+    -- never vote for the mafia during the day
+    all d: Day | {
+        no m: Mafia | d.votes_for[m] in Mafia
+    }
+}
+
+pred mafiaWeirdlyPeacefulBehavior{
+--Do nothing during the night
+all n: Night | {
+    no (n.mafia_killed)
+}
+-- Never vote for other mafia during the day.
+all d: Day | {
+        no m: Mafia | d.votes_for[m] in Mafia
+    }
+}
+
+--------------------------------------------------------------------------------
 //
 
 pred wellFormed {
@@ -165,37 +193,13 @@ pred wellFormed {
 
 }
 
-pred mafiaPabloEscobarBehavior[]{
-    -- everynight, if someone in the mafia is alive, the mafia will kill someone
-    all n: Night | {
-        some m: Mafia | m in n.alive
-        some t: Town | t in n.alive
-    } => {
-        #{n.mafia_killed} = 1
-    }
-    -- never vote for the mafia during the day
-    all d: Day | {
-        no m: Mafia | d.votes_for[m] in Mafia
-    }
-}
-
-pred mafiaWeirdlyPeacefulBehavior{
---Do nothing during the night
-all n: Night | {
-    no (n.mafia_killed)
-}
--- Never vote for other mafia during the day.
-all d: Day | {
-        no m: Mafia | d.votes_for[m] in Mafia
-    }
-}
 
 
 pred wellformedDay{
     
     all d: Day | {
         -- no one can vote for themselves
-        no a: Agent | d.votes_for[a] = a
+        -- no a: Agent | d.votes_for[a] = a
         -- next is a night state
         some(d.next) => d.next in Night
 
