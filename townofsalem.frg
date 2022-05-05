@@ -141,12 +141,16 @@ all d: Day | {
 
 --------------------------------------------------------------------------------
 pred wellFormed {
+    -- all states must be Day or Night
+    State in (Day + Night)
+
+
     -- controls day behavior
     all d: Day | {
             -- no one can vote for themselves
             -- no a: Agent | d.votes_for[a] = a
             -- next is a night state
-            some(d.next) => d.next in Night
+        some(d.next) => d.next in Night
     }
 
     -- controls night behavior
@@ -156,19 +160,28 @@ pred wellFormed {
             m in n.mafia_killed
         }
         --next is a day state
-       some(n.next) => n.next in Night
+        some(n.next) => n.next in Day
     }
 
+-------------------------------------------------------------------------------
     -- creates an initial and final day
-    some disj init, final: Day {
+    some disj init, final: State {
         -- initial day properties
         no s: State | s.next = init
         all a: Agent | a in init.alive
 
-        all s: State | s.next = none implies s = final
-        all s: State | next.s = none implies s = init
+        // all s: State | no s.next implies s = final
+        // all s: State | no next.s implies s = init
+
 
     }
+
+    -- ensuring normal voting behavior
+    all a: Agent | all d: Day | some d.votes_for[a] implies a in d.alive
+    all a: Agent | all d: Day | some d.votes_for.a implies a in d.alive
+
+
+    all s: State | no s.neutral_killed
 
 
 }
@@ -215,33 +228,32 @@ pred wellFormed {
 
 
 pred traces {
-    wellFormed
-
+        
     all d: Day | {
         -- if someone gets a majority of the votes, then the next stats has that
         -- person gone
-        all a: Agent | (#{d.votes_for.a} > add[divide[#{d.alive}, 2],1]) =>{
+        all a: Agent | (#{d.votes_for.a} > divide[#{d.alive}, 2]) => {
             some d.next => d.next.alive = d.alive - a
         }
 
     }
+
     all n: Night | {
         -- the net days alive it n alive minus mafia killed and whoever else
         some (n.next) => {
-            n.next.alive = (n.alive - (n.mafia_killed))
+            n.next.alive = (n.alive - (n.mafia_killed + n.neutral_killed))
         }
-
     }
 
 }
 
 
 run {
-    traces // your traces
-    wellFormed // add my wellFormed for no reason
+    traces
+    wellFormed 
     townPassiveBehavior
     mafiaWeirdlyPeacefulBehavior
     jesterBehavior
     serialKillerBehavior
 
-    } for exactly 5 State, exactly 2 Town, exactly 2 Jester, exactly 2 Mafia, exactly 1 SerialKiller for {next is linear} 
+    } for exactly 3 State, exactly 2 Town, exactly 2 Mafia for {next is linear}
