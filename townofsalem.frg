@@ -33,6 +33,7 @@ abstract sig State {
     alive: set Agent,
     // prev: lone State,
     next: lone State
+    // stats: one endStat
 }
 
 -- each Day cycle, an Agent can vote for another Agent
@@ -47,6 +48,12 @@ sig Night extends State {
     neutral_killed: set Agent
     // set Agent: protected
 }
+
+// sig endStats {
+//     vote_killed: set Agent,
+//     mafia_killed: set Agent,
+//     neutral_killed: set Agent
+// }
 
 
 --------------------------------------------------------------------------------
@@ -69,9 +76,9 @@ pred townMurderousBehavior {
     }
 }
 
-pred townWinFlag[d: Day] {
-    -- for the town to win...
-}
+// pred townHalfVotes {
+//     -- during all Day states, half of the town votes for someone
+// }
 
 -------------------------------------------------------------------------------
 // NEUTRAL BEHAVIOR
@@ -83,19 +90,20 @@ pred jesterBehavior {
     }
 }
 
+--NOTE: there can only be one SerialKiller
 pred serialKillerBehavior {
     -- during the Day, vote for anyone except yourself
-    all d: Day | all sk: SerialKiller | some a: Agent | {
-        a in d.alive
-        a != sk
-        sk in d.alive implies d.votes_for[sk] = a
+    all d: Day | {
+        some sk: SerialKiller, a: Agent | {
+            d.votes_for[sk] = a
+        }  
     }
+    
+    all n: Night | {
+        some sk: SerialKiller | sk in n.alive
 
-    -- during the Night, the SerialKiller will kill any one random Agent that's not themselves
-    all n: Night | all sk: SerialKiller | one a: Agent | {
-        a in n.alive
-        a != sk
-        sk in n.alive implies a in n.neutral_killed
+    } implies {
+        #{n.neutral_killed} = 1
     }
 }
 
@@ -104,7 +112,6 @@ pred executionerBehavior {
     all e: Executioner | {
         e.target != e
     }
-
     -- during the Day, the Executioner votes for their target if the target is alive; if not, don't vote
     all d: Day | all e: Executioner | {
         e.target in d.alive implies d.votes_for[e] = e.target else d.votes_for[e] = none
@@ -162,80 +169,38 @@ pred wellFormed {
         --next is a day state
         some(n.next) => n.next in Day
     }
-
 -------------------------------------------------------------------------------
     -- creates an initial and final day
     some disj init, final: State {
         -- initial day properties
         no s: State | s.next = init
         all a: Agent | a in init.alive
-
-        // all s: State | no s.next implies s = final
-        // all s: State | no next.s implies s = init
-
-
     }
 
     -- ensuring normal voting behavior
     all a: Agent | all d: Day | some d.votes_for[a] implies a in d.alive
     all a: Agent | all d: Day | some d.votes_for.a implies a in d.alive
 
+    all s: State | {
+        some s.next implies s.next.alive in s.alive
+    }
 
-    all s: State | no s.neutral_killed
-
-
+    all n: Night | {(n.mafia_killed + n.neutral_killed) in n.alive}
 }
-
-    //
-
-// pred wellFormed {
-//     some disj firstDay, lastDay: Day | {
-//         -- no state should come before the firstDay
-//         no s: State | s.next = firstDay
-//         // firstDay.prev = none
-//         -- no state should exist after the lastDay
-//         no lastDay.next
-//         // all s: State | {s.prev != lastDay}
-
-//         -- everyone is alive in the firstDay
-//         all a: Agent | {
-//             a in firstDay.alive
-//         }
-
-//         -- all other states should have one unique next
-//         all s: State | {
-//             (s != firstDay and s !=lastDay) implies some s.next
-//         }
-//         all disj s1, s2: State | {
-//             s1.next != s2.next
-//             s1.next = s2 implies s2.prev = s1
-//         }
-
-//         -- if someone dies in the night, they are not alive in the next Day
-//         all n: Night | all a: Agent | {
-//             a in n.mafia_killed implies a not in n.next.alive
-//             a in n.neutral_killed implies a not in n.next.alive
-//         }
-
-//         -- everyone alive in the day is alive in the next night
-//         ------ NOTE: this needs to change when voting becomes functional
-//         all d: Day | all n: Night | {
-//             d.next = n implies d.alive = n.alive
-//         }
-
-//     }
-
 
 
 pred traces {
-        
     all d: Day | {
         -- if someone gets a majority of the votes, then the next stats has that
         -- person gone
         all a: Agent | (#{d.votes_for.a} > divide[#{d.alive}, 2]) => {
-            some d.next => d.next.alive = d.alive - a
+            some d.next => {
+                not a in d.next.alive
+                // a in d.stats.vote_killed
+            }
+        } else {
+            some d.next => a in d.next.alive
         }
-
     }
 
     all n: Night | {
@@ -251,9 +216,40 @@ pred traces {
 run {
     traces
     wellFormed 
-    townPassiveBehavior
+    townMurderousBehavior
     mafiaWeirdlyPeacefulBehavior
-    jesterBehavior
     serialKillerBehavior
+    // jesterBehavior
+    // executionerBehavior
 
-    } for exactly 3 State, exactly 2 Town, exactly 2 Mafia for {next is linear}
+    } for exactly 3 State, exactly 2 Town, exactly 1 SerialKiller for {next is linear} 
+
+
+
+------------------------------------------------------------------------------
+// Property-Based Testing
+
+// pred jester_wins {
+//     some final: State | {
+
+//     }
+// }
+
+// test expect {
+//     vacuity: {
+//         traces
+//         wellFormed
+//         }
+
+//     // impossible_jester_win: {
+//     //     traces
+//     //     wellFormed
+//     //     townPassiveBehavior
+//     //     mafiaWeirdlyPeacefulBehavior
+//     //     neutralBehavior
+//     //     }
+
+
+
+
+// }
