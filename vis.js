@@ -18,7 +18,7 @@ for(const state of listOfStates){
         init = state
     }
 }
-console.log(init.id())
+
 
 let statesInOrder = [init]
 let lastAdded = init
@@ -77,6 +77,22 @@ function colorFunc(d,i){
     }
 }
 
+function nameFunc(d,i){
+    return d.toString()
+}
+
+function fontColorFunc(d,i){
+    if(state.in(Night)){
+        if(d.in(state.mafia_killed)){
+            return "red"
+        }
+        if(d.in(state.neutral_killed)){
+            return "blue"
+        }
+    }
+    return "white"
+}
+
 theSvg.selectAll("agents")
       .data(living)
       .join("circle")
@@ -86,13 +102,41 @@ theSvg.selectAll("agents")
       .style("fill", colorFunc)
 
 
+function voteX(d,i){
+const voteCaster = d.atoms()[0]
+return agentToLocationMap[voteCaster.toString()].x 
 
+}
+function voteY(d,i){
+    const voteCaster = d.atoms()[0]
+    return agentToLocationMap[voteCaster.toString()].y + 30
+}
+
+function voteTextFunc(d,i){
+return d.atoms()[1].toString()
+}
+
+theSvg.selectAll('names')
+.data(living)
+.join("text")
+.attr("x", cx)
+.attr("y", topOfState + (stateHeight/2))
+.attr("stroke", fontColorFunc)
+.style("font-size", 10)
+.text(nameFunc)
 if(state.in(Day)){
     // We want to put the name of the person each peron voted for right under 
+    votePairs = state.votes_for.tuples()
+    theSvg.selectAll('votes')
+    .data(votePairs)
+    .join("text")
+    .attr("x", voteX)
+    .attr("y", voteY)
+    .attr("stroke", "black")
+    .style("font-size", 10)
+    .text(voteTextFunc)
 }
-if(state.in(Night)){
-    
-}
+
 }
 
 
