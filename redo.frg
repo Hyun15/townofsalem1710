@@ -6,7 +6,7 @@ sig Mafia extends Agent {}
 sig Neutral extends Agent {}
 
 sig Jester extends Neutral {}
-sig SerialKiller extends Neutral {}
+lone sig SerialKiller extends Neutral {}
 sig Executioner extends Neutral {}
 
 
@@ -57,8 +57,12 @@ pred mafiaWellFormed {
     -- mafia never vote other mafia
     all d: Day | {
         all m: Mafia | {
-            not d.votes_for[m] in Mafia
+            some d.votes_for[m] => not d.votes_for[m] in Mafia 
         }
+    }
+    all n: Night | {
+        some n.mafia_killed implies n.mafia_killed in n.alive
+        {no m: Mafia | m in n.alive} => no n.mafia_killed
     }
 
     -- mafia never kill other mafia
@@ -66,10 +70,14 @@ pred mafiaWellFormed {
         all m: Mafia | {
             n.mafia_killed != m
         }
-        // all a: Agent | {
-        //     a = n.mafia_killed implies a in n.alive
-        // }
+         all a: Agent | {
+             a = n.mafia_killed implies a in n.alive
+         }
+        all sk: SerialKiller | {
+            n.mafia_killed != sk
+        }
     }
+
 }
 
 pred mafiaPassive {
@@ -91,13 +99,77 @@ pred mafiaKilling {
 }
 
 -------------------------------------------------------------------------------
+// NEUTRAL BEHAVIOR
+
+pred neutralWellFormed{
+    all n: Night |{
+        some SerialKiller
+        SerialKiller in n.alive
+        #{n.alive} > 1
+    } => #{n.neutral_killed} = 1 else{
+        no n.neutral_killed
+    } 
+
+     all n: Night | some SerialKiller => not SerialKiller in n.neutral_killed
+
+     all n: Night | {
+         some n.neutral_killed => n.neutral_killed in n.alive
+     }
+}
+
+pred jesterBehavior {
+    -- during the Day, vote yourself
+    all d: Day | all j: Jester | {
+        j in d.alive => d.votes_for[j] = j
+    }
+}
+pred serialKillerBehavior {
+    -- during the Day, vote for anyone except yourself
+    all d: Day | {
+       all sk: SerialKiller | #{d.alive} > 1 => {
+           sk in d.alive => some d.votes_for[sk]
+           not d.votes_for[sk] = sk
+       }
+    }
+
+}
+--------------------------------------------------------------------------------
+// WINNING CONDITIONS
+
+pred townWins[s: State]{
+    -- some town member is alive, mafia sk dead
+    some t: Town | t in s.alive
+    all m: Mafia | not m in s.alive
+    all sk: SerialKiller | not sk in s.alive
+}
+
+pred mafiaWins[s: State]{
+    some m: Mafia | m in s.alive
+    all t: Town | not t in s.alive
+    all sk: SerialKiller | not sk in s.alive
+}
+
+pred skWins[s: State]{
+    all a: Agent | a in s.alive => a in SerialKiller
+    some sk: SerialKiller | sk in s.alive
+}
+
+pred someoneWinsState[s: State]{
+    skWins[s] or mafiaWins[s] or townWins[s]
+}
+
+
+
+-------------------------------------------------------------------------------
 
 pred wellFormed {
+    neutralWellFormed
     mafiaWellFormed
 
     -- all States should be either a Day or a Night
     State in (Day + Night)
     Agent in (Town + Mafia + Neutral)
+    Neutral in (Jester + SerialKiller + Executioner)
 
     -- after each Day is a Night
     all d: Day | {
@@ -171,19 +243,19 @@ pred wellFormed {
         }
     }
 
+    -- someone will always win
+    some s: State | {
+        no s.next 
+        townWins[s]
+    }
+
 }
 
 run {
     wellFormed
     townPassive
     mafiaKilling
-
-    some disj n1, n2, n3, n4: Night | {
-        some disj a1, a2, a3, a4: Agent | {
-            a1 in n1.mafia_killed
-            a2 in n2.mafia_killed
-            a3 in n3.mafia_killed
-            a4 in n4.mafia_killed
-        }
-    }
-} for exactly 9 State, exactly 2 Mafia, exactly 4 Town for (next is linear)
+    jesterBehavior
+    serialKillerBehavior
+    
+} for 10 Agent,5 Int, 15 State, exactly 2 Mafia, exactly 1 Jester,exactly 1 SerialKiller, exactly 1 Executioner,exactly 4 Town for (next is linear)
