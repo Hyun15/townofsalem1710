@@ -109,7 +109,7 @@ return agentToLocationMap[voteCaster.toString()].x
 }
 function voteY(d,i){
     const voteCaster = d.atoms()[0]
-    return agentToLocationMap[voteCaster.toString()].y + 30
+    return agentToLocationMap[voteCaster.toString()].y + stateHeight/3
 }
 
 function voteTextFunc(d,i){
@@ -122,7 +122,7 @@ theSvg.selectAll('names')
 .attr("x", cx)
 .attr("y", topOfState + (stateHeight/2))
 .attr("stroke", fontColorFunc)
-.style("font-size", 10)
+.style("font-size", width/50)
 .text(nameFunc)
 if(state.in(Day)){
     // We want to put the name of the person each peron voted for right under 
@@ -133,7 +133,7 @@ if(state.in(Day)){
     .attr("x", voteX)
     .attr("y", voteY)
     .attr("stroke", "black")
-    .style("font-size", 10)
+    .style("font-size", width/50)
     .text(voteTextFunc)
 }
 
