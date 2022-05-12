@@ -418,15 +418,7 @@ test expect {
         
     } for 15 State, exactly 5 Town, exactly 3 Mafia,exactly 0 Neutral is unsat
 
-    mafiaVsTownMafWin : {
-        wellFormed
-        mafiaKilling
-        townMurderous
-        some Town
-        some Mafia
-        some s: State | mafiaWins[s]
-    } is sat
-
+    
     mafiaVsTownTownWin : {
         wellFormed
         mafiaKilling
@@ -436,6 +428,14 @@ test expect {
         some s: State | townWins[s]
     } is sat
 
+    // mafiaVsTownMafWin : {
+    //     wellFormed
+    //     mafiaKilling
+    //     townMurderous
+    //     some Town
+    //     some Mafia
+    //     some s: State | mafiaWins[s]
+    // } for 25 State, 12 Day,13 Night ,exactly 8 Town, exactly 3 Mafia,exactly 0 Neutral, 6 Int is sat
 
     // skCantDieIfWins : {
     //     wellFormed
