@@ -293,20 +293,48 @@ pred wellFormed {
 
 }
 
--- sample run
-run {
-    wellFormed
-    townPassive
-    mafiaKilling
-    jesterBehavior
-    serialKillerBehavior
-    exeBehavior
-    some s: State | {
-        mafiaWins[s]
-    }
-} for 10 State, 8 Agent, 8 Int, exactly 4 Town, exactly 3 Mafia, exactly 1 SerialKiller for {next is linear}
+-- Trace where Mafia Win
+// run {
+//     wellFormed
+//     townPassive
+//     mafiaKilling
+//     jesterBehavior
+//     serialKillerBehavior
+//     exeBehavior
+//     some s: State | {
+//         mafiaWins[s]
+//     }
+// } for 10 State, 8 Agent, 8 Int, exactly 4 Town, exactly 3 Mafia, exactly 1 SerialKiller for {next is linear}
 
----------------------––––––––––––––––––---––-––--––––––––––––––––––––––
+
+-- Trace where Town Win
+// run {
+//     wellFormed
+//     townMurderous
+//     mafiaPassive
+//     jesterBehavior
+//     serialKillerBehavior
+//     exeBehavior
+//     some s: State | {
+//         townWins[s]
+//     }
+// } for 15 State, 10 Agent, 8 Int, exactly 4 Town, exactly 2 Mafia, exactly 1 SerialKiller for {next is linear}
+
+
+-- Trace where Serial Killer Wins
+// run {
+//     wellFormed
+//     townPassive
+//     mafiaKilling
+//     jesterBehavior
+//     serialKillerBehavior
+//     exeBehavior
+//     some s: State | {
+//         skWins[s]
+//     }
+// } for 10 State, 8 Agent, 8 Int, exactly 4 Town, exactly 3 Mafia, exactly 1 SerialKiller for {next is linear}
+
+---------------------––––––––––––––––––---––-––--––––––––––––––––––––––--------
 // Property-Based Testing
 
 test expect {
