@@ -7,7 +7,9 @@ sig Neutral extends Agent {}
 
 sig Jester extends Neutral {}
 lone sig SerialKiller extends Neutral {}
-sig Executioner extends Neutral {}
+sig Executioner extends Neutral {
+    target: one Agent
+}
 
 
 abstract sig State {
@@ -102,6 +104,7 @@ pred mafiaKilling {
 // NEUTRAL BEHAVIOR
 
 pred neutralWellFormed{
+    all e: Executioner| e.target != e
     all n: Night |{
         some SerialKiller
         SerialKiller in n.alive
@@ -133,6 +136,16 @@ pred serialKillerBehavior {
     }
 
 }
+
+pred exeBehavior{
+    all d: Day|{
+        all e: Executioner |{
+            (e in d.alive and e.target in d.alive) => d.votes_for[e] = e.target
+        }
+    }
+}
+
+
 --------------------------------------------------------------------------------
 // WINNING CONDITIONS
 
@@ -156,6 +169,24 @@ pred skWins[s: State]{
 
 pred someoneWinsState[s: State]{
     skWins[s] or mafiaWins[s] or townWins[s]
+}
+
+pred jesterWins[j: Jester]{
+    some d: Day | {
+        some d.next
+        j in d.alive
+        not j in d.next.alive
+        not townWins[d]
+    }
+}
+
+pred exeWins[e: Executioner]{
+    some d: Day | {
+        some d.next
+        d.voted_out = e.target
+        e in d.alive
+        not someoneWinsState[d]
+    }
 }
 
 
@@ -243,19 +274,40 @@ pred wellFormed {
         }
     }
 
+    all d: Day | some d.voted_out => d.voted_out in d.alive
+
     -- someone will always win
     some s: State | {
         no s.next 
-        townWins[s]
+        someoneWinsState[s]
     }
 
 }
 
+
+
+
+
+
+
+
+/*
 run {
     wellFormed
-    townPassive
+    townMurderous
     mafiaKilling
     jesterBehavior
     serialKillerBehavior
+    exeBehavior
+    some j: Jester | jesterWins[j]
+    some e: Executioner | exeWins[e]
     
-} for 10 Agent,5 Int, 15 State, exactly 2 Mafia, exactly 1 Jester,exactly 1 SerialKiller, exactly 1 Executioner,exactly 4 Town for (next is linear)
+} for 15 Agent,5 Int, 15 State, exactly 2 Mafia, exactly 1 Jester,exactly 1 SerialKiller, exactly 1 Executioner,exactly 5 Town for (next is linear)
+*/
+
+---------------------––––––––––––––––––---––-––--––––––––––––––––––––––
+-- basic stuff
+
+--vac
+
+-- if town never votes, and there is one mafia, 
