@@ -110,14 +110,18 @@ pred neutralWellFormed{
         SerialKiller in n.alive
         #{n.alive} > 1
     } => #{n.neutral_killed} = 1 else{
-        no n.neutral_killed
+        #{n.neutral_killed} = 0
     } 
 
-     all n: Night | some SerialKiller => not SerialKiller in n.neutral_killed
+    all n: Night | some SerialKiller => not SerialKiller in n.neutral_killed
 
-     all n: Night | {
+    all n: Night | {
          some n.neutral_killed => n.neutral_killed in n.alive
-     }
+    }
+     
+    all n: Night | {
+        all sk: SerialKiller | sk not in n.alive implies #{n.neutral_killed} = 0
+    }
 }
 
 pred jesterBehavior {
@@ -216,6 +220,12 @@ pred wellFormed {
     all s: State | {
         no next.s implies s.alive = Agent
     }
+    some s: State | {
+        no next.s
+        all a: Agent | {
+            a in s.alive
+        }
+    }
 
     -- no one can come back to life
     all s: State | {
@@ -287,7 +297,12 @@ pred wellFormed {
 
 
 
-
+// run {
+//     wellFormed
+//     some s: State | not townWins[s]
+//     townPassive
+//     mafiaPassive
+// } for exactly 5 Agent, exactly 5 Town for {next is linear}
 
 
 
@@ -306,8 +321,53 @@ run {
 */
 
 ---------------------––––––––––––––––––---––-––--––––––––––––––––––––––
--- basic stuff
+// Property-Based Testing
 
---vac
+test expect {
+    vacuity: {
+        wellFormed
+    } is sat
 
--- if town never votes, and there is one mafia, 
+    townPassiveWin: {
+        wellFormed
+        townPassive
+        some s: State | {
+            no s.next
+            townWins[s]
+        }
+    } for exactly 5 Town, exactly 0 Mafia, exactly 0 Neutral is sat
+
+    townAggressiveWin: {
+        wellFormed
+        townMurderous
+        some s: State | {
+            no s.next
+            townWins[s]
+        }
+    } for exactly 5 Town, exactly 0 Mafia, exactly 0 Neutral is sat
+
+    townPassiveLoss: {
+        wellFormed
+        townPassive
+        mafiaKilling
+
+        some s: State | {
+            no s.next
+            townWins[s]
+        }
+
+    } for exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral is unsat
+
+    townAggressiveLoss: {
+        wellFormed
+        townMurderous
+        mafiaKilling
+        some s: State | {
+            no s.next
+            townWins[s]
+        }
+    } for exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral is unsat
+
+
+
+}
