@@ -1,10 +1,10 @@
-#lang forge "final" 
+#lang forge
 
 --------------------------------------------------------------------------------
 // Sigs
 
 abstract sig Agent {}
-sig Town extends Agent{}
+sig Town extends Agent {}
 sig Mafia extends Agent {}
 sig Neutral extends Agent {}
 
@@ -104,9 +104,9 @@ pred mafiaKilling {
 -------------------------------------------------------------------------------
 // Neutral Behavior
 
-pred neutralWellFormed{
+pred neutralWellFormed {
     all e: Executioner| e.target != e
-    all n: Night |{
+    all n: Night | {
         some SerialKiller
         SerialKiller in n.alive
         #{n.alive} > 1
@@ -143,9 +143,9 @@ pred serialKillerBehavior {
 
 }
 
-pred exeBehavior{
-    all d: Day|{
-        all e: Executioner |{
+pred exeBehavior {
+    all d: Day| {
+        all e: Executioner | {
             (e in d.alive and e.target in d.alive) => d.votes_for[e] = e.target
         }
     }
@@ -153,29 +153,29 @@ pred exeBehavior{
 --------------------------------------------------------------------------------
 // Win Conditions
 
-pred townWins[s: State]{
+pred townWins[s: State] {
     -- some town member is alive, mafia sk dead
     some t: Town | t in s.alive
     all m: Mafia | not m in s.alive
     all sk: SerialKiller | not sk in s.alive
 }
 
-pred mafiaWins[s: State]{
+pred mafiaWins[s: State] {
     some m: Mafia | m in s.alive
     all t: Town | not t in s.alive
     all sk: SerialKiller | not sk in s.alive
 }
 
-pred skWins[s: State]{
+pred skWins[s: State] {
     all a: Agent | a in s.alive => a in SerialKiller
     some sk: SerialKiller | sk in s.alive
 }
 
-pred someoneWinsState[s: State]{
+pred someoneWinsState[s: State] {
     skWins[s] or mafiaWins[s] or townWins[s]
 }
 
-pred jesterWins[j: Jester]{
+pred jesterWins[j: Jester] {
     some d: Day | {
         some d.next
         j in d.alive
@@ -184,7 +184,7 @@ pred jesterWins[j: Jester]{
     }
 }
 
-pred exeWins[e: Executioner]{
+pred exeWins[e: Executioner] {
     some d: Day | {
         some d.next
         d.voted_out = e.target
@@ -293,21 +293,18 @@ pred wellFormed {
 
 }
 
-
 -- sample run
-/*
 run {
     wellFormed
-    townMurderous
+    townPassive
     mafiaKilling
     jesterBehavior
     serialKillerBehavior
     exeBehavior
-    some j: Jester | jesterWins[j]
-    some e: Executioner | exeWins[e]
-    
-} for 15 Agent,5 Int, 15 State, exactly 2 Mafia, exactly 1 Jester,exactly 1 SerialKiller, exactly 1 Executioner,exactly 5 Town for (next is linear)
-*/
+    some s: State | {
+        mafiaWins[s]
+    }
+} for 10 State, 8 Agent, 8 Int, exactly 4 Town, exactly 3 Mafia, exactly 1 SerialKiller for {next is linear}
 
 ---------------------––––––––––––––––––---––-––--––––––––––––––––––––––
 // Property-Based Testing
@@ -435,7 +432,5 @@ test expect {
             not SerialKiller in d.alive
         }
     } for 8 State, exactly 3 Town, exactly 3 Mafia, exactly 1 SerialKiller, exactly 1 Neutral for {next is linear} is unsat
-
-    
 
 }
