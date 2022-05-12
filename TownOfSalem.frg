@@ -1,4 +1,7 @@
-#lang forge
+#lang forge "final" 
+
+--------------------------------------------------------------------------------
+// Sigs
 
 abstract sig Agent {}
 sig Town extends Agent{}
@@ -10,7 +13,6 @@ lone sig SerialKiller extends Neutral {}
 sig Executioner extends Neutral {
     target: one Agent
 }
-
 
 abstract sig State {
     alive: set Agent,
@@ -30,7 +32,6 @@ sig Night extends State {
 one sig endStats {
     winners: set Agent
 }
-
 
 -------------------------------------------------------------------------------
 // Town Behavior
@@ -101,7 +102,7 @@ pred mafiaKilling {
 }
 
 -------------------------------------------------------------------------------
-// NEUTRAL BEHAVIOR
+// Neutral Behavior
 
 pred neutralWellFormed{
     all e: Executioner| e.target != e
@@ -130,6 +131,7 @@ pred jesterBehavior {
         j in d.alive => d.votes_for[j] = j
     }
 }
+
 pred serialKillerBehavior {
     -- during the Day, vote for anyone except yourself
     all d: Day | {
@@ -148,10 +150,8 @@ pred exeBehavior{
         }
     }
 }
-
-
 --------------------------------------------------------------------------------
-// WINNING CONDITIONS
+// Win Conditions
 
 pred townWins[s: State]{
     -- some town member is alive, mafia sk dead
@@ -193,9 +193,8 @@ pred exeWins[e: Executioner]{
     }
 }
 
-
-
--------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+// Day-Night Model
 
 pred wellFormed {
     neutralWellFormed
@@ -295,17 +294,7 @@ pred wellFormed {
 }
 
 
-
-
-// run {
-//     wellFormed
-//     some s: State | not townWins[s]
-//     townPassive
-//     mafiaPassive
-// } for exactly 5 Agent, exactly 5 Town for {next is linear}
-
-
-
+-- sample run
 /*
 run {
     wellFormed
@@ -326,53 +315,53 @@ run {
 test expect {
     vacuity: {
         wellFormed
-    } is sat
+    } for {next is linear} is sat
 
     townCanWin : {
         wellFormed
         some s: State | {
             townWins[s]
         } 
-    } is sat
+    } for {next is linear} is sat
 
     mafiaCanWin : {
         wellFormed
         some s: State | {
             mafiaWins[s]
         }
-    } is sat
+    } for {next is linear} is sat
 
     skCanWin : {
         wellFormed
         some s: State | {
             skWins[s]
         }
-    } is sat
+    } for {next is linear} is sat
 
     jesterCanWin : {
         wellFormed
         some j : Jester | {
             jesterWins[j]
         }
-    } is sat
+    } for {next is linear} is sat
 
-    townPassiveWin: {
+    townPassiveWin : {
         wellFormed
         townPassive
         some s: State | {
             no s.next
             townWins[s]
         }
-    } for exactly 5 Town, exactly 0 Mafia, exactly 0 Neutral is sat
+    } for exactly 5 Town, exactly 0 Mafia, exactly 0 Neutral for {next is linear} is sat
 
-    townAggressiveWin: {
+    townAggressiveWin : {
         wellFormed
         townMurderous
         some s: State | {
             no s.next
             townWins[s]
         }
-    } for exactly 5 Town, exactly 0 Mafia, exactly 0 Neutral is sat
+    } for exactly 5 Town, exactly 0 Mafia, exactly 0 Neutral for {next is linear} is sat
 
     townPassiveLoss: {
         wellFormed
@@ -384,7 +373,7 @@ test expect {
             townWins[s]
         }
 
-    } for exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral is unsat
+    } for exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral for {next is linear} is unsat
 
     townAggressiveLoss: {
         wellFormed
@@ -394,7 +383,7 @@ test expect {
             no s.next
             townWins[s]
         }
-    } for exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral is unsat
+    } for exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral for {next is linear} is unsat
 
     skWinsWhenAllPassive : {
         wellFormed
@@ -404,7 +393,7 @@ test expect {
         no s: State | {
             skWins[s]
         }
-    } for 15 State, exactly 5 Town, exactly 3 Mafia, exactly 1 SerialKiller, exactly 1 Neutral is unsat
+    } for 15 State, exactly 5 Town, exactly 3 Mafia, exactly 1 SerialKiller, exactly 1 Neutral for {next is linear} is unsat
 
     mafiaAlwaysAliveWin : {
         wellFormed
@@ -416,7 +405,7 @@ test expect {
             mafiaWins[s]
         }
         
-    } for 15 State, exactly 5 Town, exactly 3 Mafia,exactly 0 Neutral is unsat
+    } for 15 State, exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral for {next is linear} is unsat
 
     
     mafiaVsTownTownWin : {
@@ -426,27 +415,26 @@ test expect {
         some Town
         some Mafia
         some s: State | townWins[s]
-    } is sat
+    } for {next is linear} is sat
 
+    -- this test fails!
     // mafiaVsTownMafWin : {
     //     wellFormed
     //     mafiaKilling
     //     townMurderous
-    //     some Town
-    //     some Mafia
     //     some s: State | mafiaWins[s]
-    // } for 25 State, 12 Day,13 Night ,exactly 8 Town, exactly 3 Mafia,exactly 0 Neutral, 6 Int is sat
+    // } for 25 State, 12 Day, 13 Night, exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral, 8 Int for {next is linear} is sat
 
-    // skCantDieIfWins : {
-    //     wellFormed
-    //     serialKillerBehavior
-    //     some s: State | {
-    //         skWins[s]
-    //     }
-    //     some d: Day | {
-    //         not SerialKiller in d.alive
-    //     }
-    // } for 12 State, exactly 3 Town, exactly 3 Mafia, exactly 1 SerialKiller, exactly 1 Neutral is unsat
+    skCantDieIfWins : {
+        wellFormed
+        serialKillerBehavior
+        some s: State | {
+            skWins[s]
+        }
+        some d: Day | {
+            not SerialKiller in d.alive
+        }
+    } for 8 State, exactly 3 Town, exactly 3 Mafia, exactly 1 SerialKiller, exactly 1 Neutral for {next is linear} is unsat
 
     
 
