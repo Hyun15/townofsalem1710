@@ -328,6 +328,34 @@ test expect {
         wellFormed
     } is sat
 
+    townCanWin : {
+        wellFormed
+        some s: State | {
+            townWins[s]
+        } 
+    } is sat
+
+    mafiaCanWin : {
+        wellFormed
+        some s: State | {
+            mafiaWins[s]
+        }
+    } is sat
+
+    skCanWin : {
+        wellFormed
+        some s: State | {
+            skWins[s]
+        }
+    } is sat
+
+    jesterCanWin : {
+        wellFormed
+        some j : Jester | {
+            jesterWins[j]
+        }
+    } is sat
+
     townPassiveWin: {
         wellFormed
         townPassive
@@ -368,6 +396,40 @@ test expect {
         }
     } for exactly 5 Town, exactly 3 Mafia, exactly 0 Neutral is unsat
 
+    skWinsWhenAllPassive : {
+        wellFormed
+        townPassive
+        mafiaPassive
+        serialKillerBehavior
+        no s: State | {
+            skWins[s]
+        }
+    } for 15 State, exactly 5 Town, exactly 3 Mafia, exactly 1 SerialKiller, exactly 1 Neutral is unsat
 
+    mafiaAlwaysAliveWin : {
+        wellFormed
+        serialKillerBehavior
+        all s: State | {
+            some m: Mafia | m in s.alive
+        } 
+        no s: State | {
+            mafiaWins[s]
+        }
+        
+    } for 15 State, exactly 5 Town, exactly 3 Mafia,exactly 0 Neutral is unsat
+
+
+    // skCantDieIfWins : {
+    //     wellFormed
+    //     serialKillerBehavior
+    //     some s: State | {
+    //         skWins[s]
+    //     }
+    //     some d: Day | {
+    //         not SerialKiller in d.alive
+    //     }
+    // } for 12 State, exactly 3 Town, exactly 3 Mafia, exactly 1 SerialKiller, exactly 1 Neutral is unsat
+
+    
 
 }
